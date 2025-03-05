@@ -1,25 +1,179 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
+title: 'Reproducible Research: Peer Assessment 1'
+author: "Oswald Lionel KOUTANGNI"
+date: "2025-03-05"
 output: 
   html_document:
     keep_md: true
 ---
 
 
-## Loading and preprocessing the data
+``` r
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+```
 
+```
+## 
+## Attaching package: 'dplyr'
+```
 
+```
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+```
 
-## What is mean total number of steps taken per day?
+```
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
 
+## Loading and Preprocessing the Data
 
+``` r
+# Load the dataset
+activity_data <- read.csv("activity.csv", stringsAsFactors = FALSE)
 
-## What is the average daily activity pattern?
+# Convert date column to Date format
+activity_data$date <- as.Date(activity_data$date)
+```
 
+## What is the Mean Total Number of Steps Taken Per Day?
 
+``` r
+# Summarize total steps per day
+steps_per_day <- activity_data %>% group_by(date) %>% summarise(total_steps = sum(steps, na.rm = TRUE))
 
-## Imputing missing values
+# Create histogram
+hist(steps_per_day$total_steps, breaks=30, col="blue", main="Histogram of Total Steps Per Day",
+     xlab="Total Steps", ylab="Frequency")
+```
 
+![](PA1_template_files/figure-html/total-steps-1.png)<!-- -->
 
+``` r
+# Calculate mean and median
+mean_steps <- mean(steps_per_day$total_steps, na.rm = TRUE)
+median_steps <- median(steps_per_day$total_steps, na.rm = TRUE)
 
-## Are there differences in activity patterns between weekdays and weekends?
+mean_steps
+```
+
+```
+## [1] 9354.23
+```
+
+``` r
+median_steps
+```
+
+```
+## [1] 10395
+```
+
+## What is the Average Daily Activity Pattern?
+
+``` r
+# Compute average steps per interval
+interval_avg <- activity_data %>% group_by(interval) %>% summarise(avg_steps = mean(steps, na.rm = TRUE))
+
+# Time series plot
+plot(interval_avg$interval, interval_avg$avg_steps, type="l", col="red", lwd=2, 
+     xlab="5-Minute Interval", ylab="Average Steps", main="Average Daily Activity Pattern")
+```
+
+![](PA1_template_files/figure-html/daily-pattern-1.png)<!-- -->
+
+``` r
+# Find interval with max steps
+max_interval <- interval_avg[which.max(interval_avg$avg_steps), ]
+max_interval
+```
+
+```
+## # A tibble: 1 × 2
+##   interval avg_steps
+##      <int>     <dbl>
+## 1      835      206.
+```
+
+## Imputing Missing Values
+
+``` r
+# Count missing values
+missing_values <- sum(is.na(activity_data$steps))
+missing_values
+```
+
+```
+## [1] 2304
+```
+
+``` r
+# Fill missing values with the mean for that interval
+activity_data_imputed <- activity_data
+for (i in 1:nrow(activity_data_imputed)) {
+  if (is.na(activity_data_imputed$steps[i])) {
+    activity_data_imputed$steps[i] <- interval_avg$avg_steps[interval_avg$interval == activity_data_imputed$interval[i]]
+  }
+}
+
+# Recalculate total steps per day after imputation
+steps_per_day_imputed <- activity_data_imputed %>% group_by(date) %>% summarise(total_steps = sum(steps))
+
+# Histogram after imputation
+hist(steps_per_day_imputed$total_steps, breaks=30, col="green", main="Histogram of Total Steps Per Day (Imputed)",
+     xlab="Total Steps", ylab="Frequency")
+```
+
+![](PA1_template_files/figure-html/impute-missing-1.png)<!-- -->
+
+``` r
+# Recalculate mean and median
+mean_steps_imputed <- mean(steps_per_day_imputed$total_steps)
+median_steps_imputed <- median(steps_per_day_imputed$total_steps)
+
+mean_steps_imputed
+```
+
+```
+## [1] 10766.19
+```
+
+``` r
+median_steps_imputed
+```
+
+```
+## [1] 10766.19
+```
+
+## Are There Differences in Activity Patterns Between Weekdays and Weekends?
+
+``` r
+# Create a new variable for weekday/weekend
+activity_data_imputed$day_type <- ifelse(weekdays(activity_data_imputed$date) %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+
+# Compute average steps per interval by day type
+interval_avg_weekend <- activity_data_imputed %>% group_by(interval, day_type) %>% summarise(avg_steps = mean(steps))
+```
+
+```
+## `summarise()` has grouped output by 'interval'. You can override using the
+## `.groups` argument.
+```
+
+``` r
+# Plot
+ggplot(interval_avg_weekend, aes(x=interval, y=avg_steps, color=day_type)) +
+  geom_line() +
+  facet_wrap(~day_type, ncol=1) +
+  labs(title="Activity Patterns: Weekday vs Weekend", x="Interval", y="Average Steps") +
+  theme_minimal()
+```
+
+![](PA1_template_files/figure-html/weekday-weekend-1.png)<!-- -->
+

@@ -2,7 +2,9 @@
 title: 'Reproducible Research: Peer Assessment 1'
 author: "Oswald Lionel KOUTANGNI"
 date: "2025-03-05"
-output: html_document
+output: 
+  html_document:
+    keep_md: true
 ---
 
 ```{r setup, echo=TRUE}
@@ -95,3 +97,4 @@ ggplot(interval_avg_weekend, aes(x=interval, y=avg_steps, color=day_type)) +
   labs(title="Activity Patterns: Weekday vs Weekend", x="Interval", y="Average Steps") +
   theme_minimal()
 ```
+
